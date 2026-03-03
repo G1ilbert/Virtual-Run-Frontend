@@ -33,13 +33,32 @@ function getAdminApi(): AxiosInstance {
       baseURL: process.env.NEXT_PUBLIC_API_URL,
       headers: { "Content-Type": "application/json" },
     });
+
+    // Request interceptor — attach JWT Bearer token from localStorage
     _adminApi.interceptors.request.use((config) => {
       if (typeof window !== "undefined") {
-        const token = localStorage.getItem("vr_admin_token");
+        const token = localStorage.getItem("admin_token");
         if (token) config.headers.Authorization = `Bearer ${token}`;
       }
       return config;
     });
+
+    // Response interceptor — handle 401 by redirecting to admin login
+    _adminApi.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (typeof window !== "undefined" && error.response?.status === 401) {
+          // Clear stored admin data
+          localStorage.removeItem("admin_token");
+          localStorage.removeItem("admin_user");
+          // Redirect to admin login (unless already there)
+          if (!window.location.pathname.startsWith("/admin/login")) {
+            window.location.href = "/admin/login";
+          }
+        }
+        return Promise.reject(error);
+      },
+    );
   }
   return _adminApi;
 }
@@ -90,17 +109,19 @@ export async function adminLogin(
   if (!USE_MOCK) {
     const api = getAdminApi();
     const res = await api.post("/auth/admin/login", { username, password });
-    const { accessToken } = res.data;
-    if (typeof window !== "undefined") {
-      localStorage.setItem("vr_admin_token", accessToken);
+    // Handle both snake_case and camelCase response
+    const token: string =
+      res.data.access_token ?? res.data.accessToken;
+    if (typeof window !== "undefined" && token) {
+      localStorage.setItem("admin_token", token);
     }
-    return res.data;
+    return { accessToken: token, admin: res.data.admin };
   }
   await delay(800);
   if (username === "admin" && password === "admin123") {
     const token = "mock_admin_jwt_token_" + Date.now();
     if (typeof window !== "undefined") {
-      localStorage.setItem("vr_admin_token", token);
+      localStorage.setItem("admin_token", token);
     }
     return { accessToken: token, admin: { ...mockAdminUser } };
   }
@@ -109,7 +130,8 @@ export async function adminLogin(
 
 export function adminLogout() {
   if (typeof window !== "undefined") {
-    localStorage.removeItem("vr_admin_token");
+    localStorage.removeItem("admin_token");
+    localStorage.removeItem("admin_user");
   }
   _adminApi = null;
 }

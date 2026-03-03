@@ -21,8 +21,9 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
-// Pages that should never trigger a 401 redirect
-const publicPaths = ["/login", "/register"];
+// Pages that should never trigger a 401 redirect (user auth)
+// Admin pages are handled by admin-api-client's own interceptor
+const publicPaths = ["/login", "/register", "/admin"];
 
 // Response interceptor — handle errors globally
 api.interceptors.response.use(

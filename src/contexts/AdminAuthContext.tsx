@@ -31,8 +31,8 @@ const AdminAuthContext = createContext<AdminAuthContextType | undefined>(
 
 // ─── Storage helpers ───
 
-const TOKEN_KEY = "vr_admin_token";
-const ADMIN_KEY = "vr_admin_user";
+const TOKEN_KEY = "admin_token";
+const ADMIN_KEY = "admin_user";
 
 function getStoredAdmin(): AdminUser | null {
   if (typeof window === "undefined") return null;
@@ -118,13 +118,24 @@ function RealAdminAuthProvider({ children }: { children: ReactNode }) {
       `${process.env.NEXT_PUBLIC_API_URL}/auth/admin/login`,
       { username, password }
     );
-    const { accessToken, admin: adminData } = res.data;
+
+    // Handle both snake_case and camelCase response
+    const token: string =
+      res.data.access_token ?? res.data.accessToken;
+    const adminData = res.data.admin;
+
+    if (!token) {
+      throw new Error("No access token in response");
+    }
+
     const adminUser: AdminUser = {
-      id: adminData.id,
-      username: adminData.username,
+      id: adminData?.id,
+      username: adminData?.username ?? username,
     };
+
+    // Store token in localStorage and state
+    storeAdmin(adminUser, token);
     setAdmin(adminUser);
-    storeAdmin(adminUser, accessToken);
   }, []);
 
   const logout = useCallback(() => {
