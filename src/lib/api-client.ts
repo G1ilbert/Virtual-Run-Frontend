@@ -287,7 +287,7 @@ export async function updateProfile(data: Partial<User>): Promise<User> {
 export async function fetchProvinces(): Promise<Province[]> {
   if (!USE_MOCK) {
     const { default: api } = await import("@/lib/api");
-    return (await api.get("/geographies/provinces")).data;
+    return (await api.get("/provinces")).data;
   }
   await delay(200);
   return mockProvinces;
@@ -296,7 +296,7 @@ export async function fetchProvinces(): Promise<Province[]> {
 export async function fetchDistricts(provinceId: number): Promise<District[]> {
   if (!USE_MOCK) {
     const { default: api } = await import("@/lib/api");
-    return (await api.get(`/geographies/districts?provinceId=${provinceId}`)).data;
+    return (await api.get(`/districts?provinceId=${provinceId}`)).data;
   }
   await delay(200);
   return mockDistricts.filter((d) => d.provinceId === provinceId);
@@ -305,7 +305,7 @@ export async function fetchDistricts(provinceId: number): Promise<District[]> {
 export async function fetchSubDistricts(districtId: number): Promise<SubDistrict[]> {
   if (!USE_MOCK) {
     const { default: api } = await import("@/lib/api");
-    return (await api.get(`/geographies/sub-districts?districtId=${districtId}`)).data;
+    return (await api.get(`/sub-districts?districtId=${districtId}`)).data;
   }
   await delay(200);
   return mockSubDistricts.filter((s) => s.districtId === districtId);

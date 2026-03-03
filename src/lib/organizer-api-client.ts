@@ -782,8 +782,10 @@ export async function uploadEventCover(
     const form = new FormData();
     form.append("file", blob, "cover.jpg");
     form.append("eventId", String(eventId));
-    const res = await api.post("/files/upload/events/cover", form);
-    return res.data.coverImage;
+    const res = await api.post("/files/upload/events/cover", form, {
+      headers: { "Content-Type": undefined },
+    });
+    return res.data.path;
   }
   await delay(600);
   // mock: persist on in-memory event
@@ -804,8 +806,10 @@ export async function uploadEventDetails(
     imageDataUrls.forEach((url) => {
       form.append("files", dataUrlToBlob(url), `detail-${Date.now()}.jpg`);
     });
-    const res = await api.post("/files/upload/events/details", form);
-    return res.data.detailImages;
+    const res = await api.post("/files/upload/events/details", form, {
+      headers: { "Content-Type": undefined },
+    });
+    return res.data.paths;
   }
   await delay(800);
   _events = _events.map((e) =>
@@ -826,8 +830,10 @@ export async function uploadPackageImage(
     const form = new FormData();
     form.append("file", blob, "package.jpg");
     form.append("packageId", String(packageId));
-    const res = await api.post("/files/upload/packages", form);
-    return res.data.image;
+    const res = await api.post("/files/upload/packages", form, {
+      headers: { "Content-Type": undefined },
+    });
+    return res.data.path;
   }
   await delay(600);
   // mock: persist on in-memory packages
@@ -850,8 +856,10 @@ export async function uploadItemImage(
     const form = new FormData();
     form.append("file", blob, "item.jpg");
     form.append("itemId", String(itemId));
-    const res = await api.post("/files/upload/items", form);
-    return res.data.image;
+    const res = await api.post("/files/upload/items", form, {
+      headers: { "Content-Type": undefined },
+    });
+    return res.data.path;
   }
   await delay(600);
   _items = _items.map((item) =>

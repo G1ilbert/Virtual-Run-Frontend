@@ -29,7 +29,11 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     if (settings) {
-      setForm({ ...settings });
+      setForm({
+        promptpayId: settings.promptpayId ?? "",
+        promptpayName: settings.promptpayName ?? "",
+        commissionRate: settings.commissionRate ?? 10,
+      });
     }
   }, [settings]);
 
@@ -93,7 +97,7 @@ export default function AdminSettingsPage() {
                   id="promptpayId"
                   type="text"
                   placeholder="เช่น 0812345678"
-                  value={form.promptpayId}
+                  value={form.promptpayId || ""}
                   onChange={(e) =>
                     handleChange("promptpayId", e.target.value)
                   }
@@ -106,7 +110,7 @@ export default function AdminSettingsPage() {
                   id="promptpayName"
                   type="text"
                   placeholder="ชื่อบัญชี PromptPay"
-                  value={form.promptpayName}
+                  value={form.promptpayName || ""}
                   onChange={(e) =>
                     handleChange("promptpayName", e.target.value)
                   }
@@ -122,7 +126,7 @@ export default function AdminSettingsPage() {
                   min={0}
                   max={100}
                   placeholder="เช่น 10"
-                  value={form.commissionRate}
+                  value={form.commissionRate ?? ""}
                   onChange={(e) =>
                     handleChange("commissionRate", e.target.value)
                   }
