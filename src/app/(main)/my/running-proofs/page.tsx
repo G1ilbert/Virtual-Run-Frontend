@@ -34,6 +34,7 @@ import {
   X,
   Image as ImageIcon,
 } from "lucide-react";
+import { getImageUrl } from "@/lib/image";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "";
@@ -231,7 +232,7 @@ export default function RunningProofsPage() {
                   {/* Thumbnail */}
                   <div className="w-16 h-16 shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
                     {proof.imageUrl ? (
-                      <img src={proof.imageUrl} alt="" className="h-full w-full object-cover" />
+                      <img src={getImageUrl(proof.imageUrl)} alt="" className="h-full w-full object-cover" />
                     ) : (
                       <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
                     )}

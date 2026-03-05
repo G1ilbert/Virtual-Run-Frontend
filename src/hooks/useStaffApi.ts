@@ -15,6 +15,7 @@ import type {
 export function useStaffEvents() {
   return useSWR<Event[]>("/events/staff", () =>
     staffClient.fetchStaffEvents(),
+    { shouldRetryOnError: false },
   );
 }
 
@@ -23,6 +24,7 @@ export function useStaffEvents() {
 export function useIsStaff() {
   return useSWR<boolean>("/staff/check", () =>
     staffClient.checkIsStaff(),
+    { shouldRetryOnError: false },
   );
 }
 

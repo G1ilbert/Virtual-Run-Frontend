@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useStaffEvents } from "@/hooks/useStaffApi";
 import { CalendarDays, Users, ClipboardCheck, Package, Loader2 } from "lucide-react";
+import { getImageUrl } from "@/lib/image";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "";
@@ -39,7 +40,7 @@ export default function StaffDashboardPage() {
               <div className="w-full sm:w-40 h-28 sm:h-24 rounded-lg overflow-hidden bg-muted shrink-0">
                 {event.bannerImage ? (
                   <img
-                    src={event.bannerImage}
+                    src={getImageUrl(event.bannerImage)}
                     alt={event.title}
                     className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-200"
                   />

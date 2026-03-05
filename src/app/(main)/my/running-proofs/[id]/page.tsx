@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
   ChevronRight,
 } from "lucide-react";
+import { getImageUrl } from "@/lib/image";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "—";
@@ -103,7 +104,7 @@ export default function RunningProofDetailPage({
         <div className="rounded-xl overflow-hidden bg-muted mb-6">
           {proof.imageUrl ? (
             <img
-              src={proof.imageUrl}
+              src={getImageUrl(proof.imageUrl)}
               alt="Running proof"
               className="w-full aspect-video object-contain"
             />

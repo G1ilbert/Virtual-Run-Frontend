@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { OrganizerGuard } from "@/components/organizer-guard";
 import { useMyEvents, useMyPayouts, useOrgRunningResults, useOrgRegistrations } from "@/hooks/useOrganizerApi";
+import { getImageUrl } from "@/lib/image";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -153,7 +154,7 @@ function DashboardContent() {
                 <div key={rr.id} className="flex items-center gap-3 px-4 py-2.5">
                   {rr.runningProofs?.imageUrl && (
                     <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted shrink-0">
-                      <img src={rr.runningProofs.imageUrl} alt="" className="h-full w-full object-cover" />
+                      <img src={getImageUrl(rr.runningProofs.imageUrl)} alt="" className="h-full w-full object-cover" />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">

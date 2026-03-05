@@ -17,6 +17,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import type { Package as PackageType } from "@/types/api";
+import { getImageUrl } from "@/lib/image";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "";
@@ -61,7 +62,7 @@ function PackageCard({
     <div className="shrink-0 w-64 rounded-xl border bg-card p-4 space-y-3 snap-start">
       {pkg.image && (
         <div className="aspect-square w-full overflow-hidden rounded-lg bg-muted">
-          <img src={pkg.image} alt={pkg.name} className="h-full w-full object-cover" />
+          <img src={getImageUrl(pkg.image)} alt={pkg.name} className="h-full w-full object-cover" />
         </div>
       )}
 
@@ -142,7 +143,7 @@ export default function EventDetailPage({
   const allImages = [
     event.coverImage,
     ...(event.detailImages ?? []),
-  ].filter(Boolean) as string[];
+  ].filter(Boolean).map((img) => getImageUrl(img)) as string[];
 
   const statusInfo = getStatusInfo(event.status, event.registrationEndDate);
   const isRegClosed = event.status === "completed" ||

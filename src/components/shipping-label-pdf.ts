@@ -163,6 +163,7 @@ export async function generateShippingLabelPDF(
 
   // Open print dialog
   doc.autoPrint();
+  if (typeof window === "undefined") return;
   const pdfBlob = doc.output("blob");
   const url = URL.createObjectURL(pdfBlob);
   const printWindow = window.open(url);

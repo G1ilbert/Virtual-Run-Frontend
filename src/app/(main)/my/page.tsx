@@ -7,6 +7,7 @@ import { useMyRegistrations, useMyRunningProofs, submitRunningProof, submitRunni
 import { AuthGuard } from "@/components/auth-guard";
 import { cn } from "@/lib/utils";
 import { ClipboardList, Search, Upload, X, Loader2, CheckCircle2, ExternalLink, ChevronDown } from "lucide-react";
+import { getImageUrl } from "@/lib/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -100,7 +101,7 @@ function RegistrationCard({
   const [expanded, setExpanded] = useState(false);
   const badge = getStatusBadge(reg);
   const progress = getProgressInfo(reg);
-  const coverImage = reg.packages?.events?.coverImage || reg.packages?.events?.bannerImage;
+  const coverImage = getImageUrl(reg.packages?.events?.coverImage || reg.packages?.events?.bannerImage || null);
   const canSubmitProof = reg.paymentStatus === "confirmed";
   const linkedResults = reg.runningResults ?? [];
 
@@ -109,7 +110,7 @@ function RegistrationCard({
       <div className="flex gap-3">
         {/* Thumbnail */}
         <div className="shrink-0 w-[120px] h-[80px] rounded-lg overflow-hidden bg-muted">
-          {coverImage ? (
+          {coverImage && coverImage !== "/placeholder.png" ? (
             <img src={coverImage} alt="" className="h-full w-full object-cover" />
           ) : (
             <div className="flex h-full w-full items-center justify-center">

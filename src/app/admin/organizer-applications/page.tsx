@@ -37,6 +37,7 @@ import {
   ExternalLink,
   Calendar,
 } from "lucide-react";
+import { getImageUrl } from "@/lib/image";
 
 function statusBadge(status: OrganizerApplication["status"]) {
   switch (status) {
@@ -281,7 +282,7 @@ export default function AdminOrganizerApplicationsPage() {
             <div className="flex items-center justify-center">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={previewImage}
+                src={getImageUrl(previewImage)}
                 alt="Document proof"
                 className="max-h-[70vh] w-auto rounded-lg object-contain"
               />

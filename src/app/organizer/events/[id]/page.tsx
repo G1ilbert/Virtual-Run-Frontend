@@ -2,6 +2,7 @@
 
 import { use, useState } from "react";
 import { OrganizerGuard } from "@/components/organizer-guard";
+import { getImageUrl } from "@/lib/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -480,7 +481,7 @@ function PackagesTab({
               {/* Package Image */}
               {pkg.image && (
                 <div className="relative aspect-video overflow-hidden rounded-t-lg">
-                  <img src={pkg.image} alt={pkg.name} className="h-full w-full object-cover" />
+                  <img src={getImageUrl(pkg.image)} alt={pkg.name} className="h-full w-full object-cover" />
                 </div>
               )}
               <CardHeader className="pb-3">
@@ -763,7 +764,7 @@ function ItemsTab({ eventId }: { eventId: number }) {
               {/* Item Image */}
               {(item.image || item.imageUrl) && (
                 <div className="relative aspect-square overflow-hidden rounded-t-lg">
-                  <img src={item.image || item.imageUrl} alt={item.name} className="h-full w-full object-cover" />
+                  <img src={getImageUrl(item.image || item.imageUrl)} alt={item.name} className="h-full w-full object-cover" />
                 </div>
               )}
               <CardHeader className="pb-3">
@@ -1198,7 +1199,7 @@ function RegistrationsTab({ eventId }: { eventId: number }) {
               {detailReg.slipUrl && (
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">สลิปการชำระเงิน</p>
-                  <img src={detailReg.slipUrl} alt="Payment slip" className="w-full max-h-[200px] object-contain rounded-lg border" />
+                  <img src={getImageUrl(detailReg.slipUrl)} alt="Payment slip" className="w-full max-h-[200px] object-contain rounded-lg border" />
                 </div>
               )}
             </div>
@@ -1302,7 +1303,7 @@ function RunningResultsTab({ eventId }: { eventId: number }) {
                         className="w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0 cursor-pointer"
                         onClick={() => setPreviewImage(proof.imageUrl)}
                       >
-                        <img src={proof.imageUrl} alt="proof" className="h-full w-full object-cover hover:scale-105 transition-transform" />
+                        <img src={getImageUrl(proof.imageUrl)} alt="proof" className="h-full w-full object-cover hover:scale-105 transition-transform" />
                       </div>
                     )}
 
@@ -1399,7 +1400,7 @@ function RunningResultsTab({ eventId }: { eventId: number }) {
             <DialogTitle className="sr-only">ภาพหลักฐาน</DialogTitle>
           </DialogHeader>
           {previewImage && (
-            <img src={previewImage} alt="Running proof" className="w-full max-h-[70vh] object-contain rounded-lg" />
+            <img src={getImageUrl(previewImage)} alt="Running proof" className="w-full max-h-[70vh] object-contain rounded-lg" />
           )}
         </DialogContent>
       </Dialog>

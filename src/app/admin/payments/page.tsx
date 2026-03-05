@@ -28,6 +28,7 @@ import {
   Loader2,
   Eye,
 } from "lucide-react";
+import { getImageUrl } from "@/lib/image";
 
 const PAYMENT_TABS = [
   { value: "submitted", label: "รอตรวจ" },
@@ -203,7 +204,7 @@ export default function AdminPaymentsPage() {
                         onClick={() => openPreview(reg.slipUrl!)}
                       >
                         <img
-                          src={reg.slipUrl}
+                          src={getImageUrl(reg.slipUrl)}
                           alt="สลิป"
                           className="w-full h-48 object-cover rounded-md border bg-muted"
                         />
@@ -311,7 +312,7 @@ export default function AdminPaymentsPage() {
           {previewDialog.imageUrl && (
             <div className="flex items-center justify-center">
               <img
-                src={previewDialog.imageUrl}
+                src={getImageUrl(previewDialog.imageUrl)}
                 alt="สลิปโอนเงิน"
                 className="max-h-[70vh] w-auto rounded-md border"
               />

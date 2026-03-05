@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { PersonStanding } from "lucide-react";
 import type { Event } from "@/types/api";
+import { getImageUrl } from "@/lib/image";
 
 function formatDate(dateStr?: string) {
   if (!dateStr) return "";
@@ -40,7 +41,7 @@ export function EventCard({ event }: { event: Event }) {
       <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
         {event.coverImage || event.bannerImage ? (
           <img
-            src={event.coverImage || event.bannerImage}
+            src={getImageUrl(event.coverImage || event.bannerImage)}
             alt={event.title}
             className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
