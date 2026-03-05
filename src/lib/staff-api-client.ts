@@ -27,13 +27,10 @@ function getCurrentUserId(): number | null {
 
 export async function fetchStaffEvents(): Promise<Event[]> {
   if (!USE_MOCK) {
-    try {
-      const { default: api } = await import("@/lib/api");
-      return (await api.get("/events/staff")).data;
-    } catch {
-      // Backend doesn't have GET /events/staff endpoint
-      return [];
-    }
+    // Backend has no GET /events/staff endpoint.
+    // /events/staff is matched as /events/:id where id="staff" → 400.
+    // Staff events are not supported via API yet — return empty.
+    return [];
   }
   await delay(400);
   const userId = getCurrentUserId();
@@ -49,14 +46,10 @@ export async function fetchStaffEvents(): Promise<Event[]> {
 
 export async function checkIsStaff(): Promise<boolean> {
   if (!USE_MOCK) {
-    try {
-      const { default: api } = await import("@/lib/api");
-      const res = await api.get("/events/staff");
-      return (res.data as Event[]).length > 0;
-    } catch {
-      // Backend doesn't have GET /events/staff endpoint
-      return false;
-    }
+    // Backend has no staff-check endpoint.
+    // /events/staff is matched as /events/:id where id="staff" → 400.
+    // Return false until a proper staff API is available.
+    return false;
   }
   await delay(100);
   const userId = getCurrentUserId();

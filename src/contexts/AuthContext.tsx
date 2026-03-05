@@ -107,12 +107,34 @@ function FirebaseAuthProvider({ children }: { children: ReactNode }) {
       const {
         auth,
         onAuthStateChanged,
+        getRedirectResult,
       } = await import("@/lib/firebase");
       const axios = (await import("axios")).default;
       const authApi = axios.create({
         baseURL: process.env.NEXT_PUBLIC_API_URL,
         headers: { "Content-Type": "application/json" },
       });
+
+      // Handle Google signInWithRedirect result
+      try {
+        const redirectResult = await getRedirectResult(auth);
+        if (redirectResult && !cancelled) {
+          const token = await redirectResult.user.getIdToken();
+          try {
+            const res = await authApi.post("/auth/login", { idToken: token });
+            setUser(res.data.user ?? res.data);
+          } catch {
+            const res = await authApi.post("/auth/register", {
+              idToken: token,
+              username: redirectResult.user.displayName || redirectResult.user.email?.split("@")[0],
+            });
+            setUser(res.data.user ?? res.data);
+          }
+          setLoading(false);
+        }
+      } catch {
+        // No redirect result or redirect failed
+      }
 
       onAuthStateChanged(auth, async (fbUser) => {
         if (cancelled) return;
@@ -144,21 +166,9 @@ function FirebaseAuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithGoogle = useCallback(async () => {
-    const { auth, googleProvider, signInWithPopup } = await import("@/lib/firebase");
-    const axios = (await import("axios")).default;
-    const authApi = axios.create({ baseURL: process.env.NEXT_PUBLIC_API_URL, headers: { "Content-Type": "application/json" } });
-    const cred = await signInWithPopup(auth, googleProvider);
-    const token = await cred.user.getIdToken();
-    try {
-      const res = await authApi.post("/auth/login", { idToken: token });
-      setUser(res.data.user ?? res.data);
-    } catch {
-      const res = await authApi.post("/auth/register", {
-        idToken: token,
-        username: cred.user.displayName || cred.user.email?.split("@")[0],
-      });
-      setUser(res.data.user ?? res.data);
-    }
+    const { auth, googleProvider, signInWithRedirect } = await import("@/lib/firebase");
+    // Redirect to Google sign-in page; result handled in useEffect via getRedirectResult
+    await signInWithRedirect(auth, googleProvider);
   }, []);
 
   const register = useCallback(async (email: string, password: string, username: string) => {
