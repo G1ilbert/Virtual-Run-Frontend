@@ -1,123 +1,121 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useMemo } from "react";
 import { useEvents } from "@/hooks/useApi";
-import { EventCard } from "@/components/event-card";
-import { CardSkeleton } from "@/components/page-skeleton";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Search, PersonStanding, Trophy, Package } from "lucide-react";
+import { EventCard, EventCardSkeleton } from "@/components/event-card";
+import { PersonStanding } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Event } from "@/types/api";
+
+const CHIP_FILTERS = [
+  { label: "ทั้งหมด", value: "all" },
+  { label: "5K", value: "5k" },
+  { label: "10K", value: "10k" },
+  { label: "21K", value: "21k" },
+  { label: "42K", value: "42k" },
+  { label: "Fun Run", value: "fun" },
+  { label: "Trail", value: "trail" },
+] as const;
+
+function matchesFilter(event: Event, filter: string): boolean {
+  if (filter === "all") return true;
+
+  const distances = event.packages
+    ?.map((p) => p.targetDistance)
+    .filter((d): d is number => d != null) ?? [];
+
+  const titleLower = event.title.toLowerCase();
+  const descLower = (event.description ?? "").toLowerCase();
+  const packageNames = event.packages?.map((p) => p.name.toLowerCase()).join(" ") ?? "";
+  const searchText = `${titleLower} ${descLower} ${packageNames}`;
+
+  switch (filter) {
+    case "5k":
+      return distances.some((d) => d >= 3 && d <= 6);
+    case "10k":
+      return distances.some((d) => d >= 7 && d <= 15);
+    case "21k":
+      return distances.some((d) => d >= 16 && d <= 25);
+    case "42k":
+      return distances.some((d) => d >= 26);
+    case "fun":
+      return searchText.includes("fun");
+    case "trail":
+      return searchText.includes("trail");
+    default:
+      return true;
+  }
+}
 
 export default function HomePage() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState("");
-  const { data, isLoading } = useEvents({ page: "1", limit: "12", status: "approved" });
+  const [activeFilter, setActiveFilter] = useState("all");
+  const [visibleCount, setVisibleCount] = useState(12);
+  const { data, isLoading } = useEvents({ page: "1", limit: "50", status: "approved" });
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-    }
-  };
+  const filteredEvents = useMemo(() => {
+    const events = data?.data ?? [];
+    return events.filter((e) => matchesFilter(e, activeFilter));
+  }, [data, activeFilter]);
+
+  const visibleEvents = filteredEvents.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredEvents.length;
 
   return (
-    <div>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand/10 via-background to-brand/5 py-16 md:py-24">
-        <div className="container mx-auto px-4 text-center">
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-brand shadow-lg shadow-brand/30">
-            <PersonStanding className="h-8 w-8 text-brand-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight md:text-5xl">
-            ค้นหางานวิ่ง{" "}
-            <span className="text-brand-foreground dark:text-brand">
-              Virtual Run
-            </span>
-          </h1>
-          <p className="mx-auto mt-3 max-w-xl text-muted-foreground md:text-lg">
-            สมัครงานวิ่ง ส่งผลวิ่ง รับเหรียญและของรางวัลส่งถึงบ้าน
-          </p>
-
-          {/* Search bar */}
-          <form
-            onSubmit={handleSearch}
-            className="mx-auto mt-8 flex max-w-lg gap-2"
+    <div className="px-4 md:px-6 py-4 max-w-[1600px]">
+      {/* Chip Filters */}
+      <div className="flex gap-2 overflow-x-auto pb-3 scrollbar-hide -mx-4 px-4">
+        {CHIP_FILTERS.map((chip) => (
+          <button
+            key={chip.value}
+            onClick={() => {
+              setActiveFilter(chip.value);
+              setVisibleCount(12);
+            }}
+            className={cn(
+              "shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+              activeFilter === chip.value
+                ? "bg-foreground text-background"
+                : "bg-muted text-foreground hover:bg-muted/80"
+            )}
           >
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="ค้นหางานวิ่ง..."
-                className="pl-10 h-12 text-base"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-            <Button
-              type="submit"
-              size="lg"
-              className="bg-brand text-brand-foreground hover:bg-brand/90 h-12 px-6"
-            >
-              ค้นหา
-            </Button>
-          </form>
-        </div>
-
-        {/* Decorative dots */}
-        <div className="absolute -right-8 top-8 h-32 w-32 rounded-full bg-brand/10 blur-3xl" />
-        <div className="absolute -left-8 bottom-8 h-24 w-24 rounded-full bg-brand/10 blur-3xl" />
-      </section>
-
-      {/* Features row */}
-      <section className="border-b">
-        <div className="container mx-auto flex flex-wrap justify-center gap-8 px-4 py-8">
-          {[
-            { icon: PersonStanding, title: "สมัครง่าย", desc: "เลือกงานวิ่งแล้วสมัครทันที" },
-            { icon: Trophy, title: "ส่งผลวิ่ง", desc: "ถ่ายรูปผลวิ่งอัพโหลดเลย" },
-            { icon: Package, title: "รับเหรียญถึงบ้าน", desc: "ของรางวัลจัดส่งให้ถึงที่" },
-          ].map((f) => (
-            <div key={f.title} className="flex items-center gap-3 text-sm">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-brand/10">
-                <f.icon className="h-5 w-5 text-brand-foreground dark:text-brand" />
-              </div>
-              <div>
-                <p className="font-semibold">{f.title}</p>
-                <p className="text-muted-foreground">{f.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+            {chip.label}
+          </button>
+        ))}
+      </div>
 
       {/* Event Grid */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-xl font-bold">งานวิ่งที่เปิดรับสมัคร</h2>
-          <Button variant="ghost" size="sm" onClick={() => router.push("/search")}>
-            ดูทั้งหมด →
-          </Button>
+      {isLoading ? (
+        <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <EventCardSkeleton key={i} />
+          ))}
         </div>
-
-        {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <CardSkeleton key={i} />
-            ))}
-          </div>
-        ) : data?.data?.length ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {data.data.map((event) => (
+      ) : visibleEvents.length > 0 ? (
+        <>
+          <div className="grid gap-x-4 gap-y-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {visibleEvents.map((event) => (
               <EventCard key={event.id} event={event} />
             ))}
           </div>
-        ) : (
-          <div className="py-16 text-center text-muted-foreground">
-            <PersonStanding className="mx-auto mb-4 h-12 w-12 opacity-30" />
-            <p>ยังไม่มีงานวิ่งที่เปิดรับสมัคร</p>
-          </div>
-        )}
-      </section>
+
+          {/* Load More */}
+          {hasMore && (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={() => setVisibleCount((c) => c + 12)}
+                className="rounded-full bg-muted px-6 py-2.5 text-sm font-medium hover:bg-muted/80 transition-colors"
+              >
+                โหลดเพิ่มเติม
+              </button>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <PersonStanding className="mb-4 h-16 w-16 text-muted-foreground/30" />
+          <p className="text-muted-foreground">ยังไม่มีงานวิ่งในขณะนี้</p>
+        </div>
+      )}
     </div>
   );
 }

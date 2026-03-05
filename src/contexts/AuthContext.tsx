@@ -18,7 +18,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
-  loginAsMock: (role: "user" | "organizer" | "admin") => void;
+  loginAsMock: (role: "user" | "organizer" | "admin" | "staff") => void;
   register: (email: string, password: string, username: string) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -60,7 +60,7 @@ function MockAuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  const loginAsMock = useCallback((role: "user" | "organizer" | "admin") => {
+  const loginAsMock = useCallback((role: "user" | "organizer" | "admin" | "staff") => {
     const u = mockUsers[role];
     setUser(u);
     storeUser(u);

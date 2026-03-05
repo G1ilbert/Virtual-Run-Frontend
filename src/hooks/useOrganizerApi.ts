@@ -148,3 +148,6 @@ export const uploadEventCover = orgClient.uploadEventCover;
 export const uploadEventDetails = orgClient.uploadEventDetails;
 export const uploadPackageImage = orgClient.uploadPackageImage;
 export const uploadItemImage = orgClient.uploadItemImage;
+export const addEventStaff = orgClient.addEventStaff;
+export const removeEventStaff = orgClient.removeEventStaff;
+export const searchUsers = orgClient.searchUsers;

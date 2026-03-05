@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Calendar, Users, MapPin } from "lucide-react";
+import { PersonStanding } from "lucide-react";
 import type { Event } from "@/types/api";
 
 function formatDate(dateStr?: string) {
-  if (!dateStr) return "—";
+  if (!dateStr) return "";
   return new Date(dateStr).toLocaleDateString("th-TH", {
     day: "numeric",
     month: "short",
@@ -21,68 +19,75 @@ function getMinPrice(event: Event) {
   return prices.length ? Math.min(...prices) : null;
 }
 
-function getStatusBadge(status: Event["status"]) {
-  const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-    approved: { label: "เปิดรับสมัคร", variant: "default" },
-    completed: { label: "จบแล้ว", variant: "secondary" },
-    draft: { label: "แบบร่าง", variant: "outline" },
-    pending_approval: { label: "รอตรวจสอบ", variant: "outline" },
-    rejected: { label: "ไม่อนุมัติ", variant: "destructive" },
-  };
-  const item = map[status] || { label: status, variant: "outline" as const };
-  return <Badge variant={item.variant}>{item.label}</Badge>;
+function getDistanceRange(event: Event) {
+  if (!event.packages?.length) return "";
+  const distances = event.packages
+    .map((p) => p.targetDistance)
+    .filter((d): d is number => d != null && d > 0)
+    .sort((a, b) => a - b);
+  if (!distances.length) return "";
+  if (distances.length === 1) return `${distances[0]}K`;
+  return `${distances[0]}K - ${distances[distances.length - 1]}K`;
 }
 
 export function EventCard({ event }: { event: Event }) {
   const minPrice = getMinPrice(event);
+  const distanceRange = getDistanceRange(event);
 
   return (
-    <Link href={`/events/${event.id}`}>
-      <Card className="group overflow-hidden transition-all hover:shadow-lg hover:border-brand/50">
-        {/* Banner */}
-        <div className="relative h-40 bg-gradient-to-br from-brand/20 to-brand/5 flex items-center justify-center overflow-hidden">
-          {(event.coverImage || event.bannerImage) ? (
-            <img
-              src={event.coverImage || event.bannerImage}
-              alt={event.title}
-              className="h-full w-full object-cover transition-transform group-hover:scale-105"
-            />
-          ) : (
-            <MapPin className="h-12 w-12 text-brand/40" />
-          )}
-          <div className="absolute top-2 right-2">
-            {getStatusBadge(event.status)}
+    <Link href={`/events/${event.id}`} className="group block">
+      {/* Cover Image - 16:9 aspect ratio */}
+      <div className="relative aspect-video overflow-hidden rounded-xl bg-muted">
+        {event.coverImage || event.bannerImage ? (
+          <img
+            src={event.coverImage || event.bannerImage}
+            alt={event.title}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-muted">
+            <PersonStanding className="h-12 w-12 text-muted-foreground/40" />
           </div>
-        </div>
+        )}
+      </div>
 
-        <CardContent className="p-4">
-          <h3 className="font-semibold text-base line-clamp-2 mb-2 group-hover:text-brand-foreground dark:group-hover:text-brand transition-colors">
-            {event.title}
-          </h3>
-
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              {formatDate(event.startDate)}
-            </span>
-            {event._count?.registrations !== undefined && (
-              <span className="flex items-center gap-1">
-                <Users className="h-3.5 w-3.5" />
-                {event._count.registrations} คน
-              </span>
-            )}
-          </div>
-
+      {/* Info */}
+      <div className="mt-2.5 space-y-1">
+        <h3 className="text-sm font-semibold leading-snug line-clamp-2">
+          {event.title}
+        </h3>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           {minPrice !== null && (
-            <p className="mt-2 text-sm font-semibold">
-              เริ่มต้น{" "}
-              <span className="text-brand-foreground dark:text-brand">
-                ฿{minPrice.toLocaleString()}
-              </span>
-            </p>
+            <span className="font-semibold text-foreground">
+              ฿{minPrice.toLocaleString()}
+            </span>
           )}
-        </CardContent>
-      </Card>
+          {distanceRange && (
+            <>
+              {minPrice !== null && <span>·</span>}
+              <span>{distanceRange}</span>
+            </>
+          )}
+        </div>
+        {event.startDate && (
+          <p className="text-xs text-muted-foreground">
+            {formatDate(event.startDate)}
+          </p>
+        )}
+      </div>
     </Link>
+  );
+}
+
+export function EventCardSkeleton() {
+  return (
+    <div className="animate-pulse">
+      <div className="aspect-video rounded-xl bg-muted" />
+      <div className="mt-2.5 space-y-2">
+        <div className="h-4 w-3/4 rounded bg-muted" />
+        <div className="h-3 w-1/2 rounded bg-muted" />
+        <div className="h-3 w-1/3 rounded bg-muted" />
+      </div>
+    </div>
   );
 }

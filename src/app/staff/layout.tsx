@@ -3,48 +3,39 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/contexts/AuthContext";
 import { AuthGuard } from "@/components/auth-guard";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
-  CalendarDays,
-  Plus,
-  Wallet,
-  FileText,
   Menu,
   ArrowLeft,
-  PersonStanding,
+  Wrench,
 } from "lucide-react";
 
 const sidebarItems = [
-  { href: "/organizer", icon: LayoutDashboard, label: "Dashboard", dividerAfter: false },
-  { href: "/organizer/events", icon: CalendarDays, label: "งานวิ่ง", dividerAfter: false },
-  { href: "/organizer/events/new", icon: Plus, label: "สร้างงานใหม่", dividerAfter: true },
-  { href: "/organizer/payouts", icon: Wallet, label: "รายได้", dividerAfter: true },
-  { href: "/organizer/apply", icon: FileText, label: "ใบสมัครผู้จัด", dividerAfter: true },
+  { href: "/staff", icon: LayoutDashboard, label: "Dashboard", dividerAfter: true },
 ];
 
 function SidebarContent({ pathname, onClose }: { pathname: string; onClose?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 px-4 py-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand">
-          <PersonStanding className="h-5 w-5 text-brand-foreground" />
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600">
+          <Wrench className="h-5 w-5 text-white" />
         </div>
         <div>
-          <p className="font-bold text-sm">Organizer</p>
-          <p className="text-[10px] text-muted-foreground">จัดการงานวิ่ง</p>
+          <p className="font-bold text-sm">Staff Panel</p>
+          <p className="text-[10px] text-muted-foreground">ตรวจสอบ & จัดส่ง</p>
         </div>
       </div>
       <div className="border-t" />
       <nav className="flex-1 space-y-0.5 p-2 pt-3">
         {sidebarItems.map((item) => {
           const isActive =
-            item.href === "/organizer"
-              ? pathname === "/organizer"
+            item.href === "/staff"
+              ? pathname === "/staff"
               : pathname.startsWith(item.href);
           return (
             <div key={item.href}>
@@ -54,11 +45,11 @@ function SidebarContent({ pathname, onClose }: { pathname: string; onClose?: () 
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-brand/10 text-foreground font-semibold"
+                    ? "bg-emerald-600/10 text-foreground font-semibold"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
-                <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-brand-foreground dark:text-brand")} />
+                <item.icon className={cn("h-5 w-5 shrink-0", isActive && "text-emerald-600")} />
                 {item.label}
               </Link>
               {item.dividerAfter && <div className="my-2 mx-3 border-t" />}
@@ -79,13 +70,12 @@ function SidebarContent({ pathname, onClose }: { pathname: string; onClose?: () 
   );
 }
 
-export default function OrganizerLayout({
+export default function StaffLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const { user } = useAuth();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   return (
@@ -112,16 +102,7 @@ export default function OrganizerLayout({
             </Sheet>
 
             <div className="flex-1 md:hidden">
-              <p className="font-bold text-sm">Organizer Panel</p>
-            </div>
-
-            <div className="ml-auto flex items-center gap-2">
-              <span className="text-sm text-muted-foreground hidden sm:inline">
-                {user?.firstName || user?.username || "Organizer"}
-              </span>
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand text-brand-foreground text-xs font-bold">
-                {(user?.username || "O").charAt(0).toUpperCase()}
-              </div>
+              <p className="font-bold text-sm">Staff Panel</p>
             </div>
           </header>
 

@@ -13,6 +13,7 @@ import type {
   Province,
   District,
   SubDistrict,
+  Notification,
 } from "@/types/api";
 
 // ─── Mock Users ───
@@ -52,6 +53,16 @@ export const mockUsers: Record<string, User> = {
     phoneNumber: "02-123-4567",
     role: "ADMIN",
     createdAt: "2024-01-01T00:00:00Z",
+  },
+  staff: {
+    id: 30,
+    username: "staff_lek",
+    email: "lek@virtualrun.com",
+    firstName: "เล็ก",
+    lastName: "ช่วยงาน",
+    phoneNumber: "081-111-2222",
+    role: "USER",
+    createdAt: "2025-03-01T08:00:00Z",
   },
 };
 
@@ -275,7 +286,11 @@ export const mockRegistrations: Registration[] = [
     packages: { ...mockEvents[1].packages![1], events: { id: 2, title: "BKK Mini Marathon", status: "approved" } as Event },
     shipments: [{ id: 1, registrationId: 2, status: "preparing", createdAt: "2026-02-25T08:00:00Z", preparedAt: "2026-02-26T10:00:00Z", shipmentItems: [], shipmentStaff: [] }],
     registrationItemVariants: [{ id: 2, registrationId: 2, itemId: 3, itemVariantId: 7, itemVariants: shirtVariants2[2], items: items[2] }],
-    runningResults: [],
+    runningResults: [
+      { id: 4, registrationId: 2, runningProofId: 4, status: "approved", createdAt: "2026-02-25T08:00:00Z", runningProofs: { id: 4, userId: 1, imageUrl: "", distance: 3.5, duration: "00:25:00", createdAt: "2026-02-25T05:30:00Z" } },
+      { id: 6, registrationId: 2, runningProofId: 6, status: "approved", createdAt: "2026-02-27T08:00:00Z", runningProofs: { id: 6, userId: 1, imageUrl: "", distance: 3.0, duration: "00:20:00", createdAt: "2026-02-27T06:00:00Z" } },
+      { id: 5, registrationId: 2, runningProofId: 5, status: "rejected", reviewNote: "Pace เร็วเกินจริง", createdAt: "2026-02-28T10:00:00Z", runningProofs: { id: 5, userId: 1, imageUrl: "", distance: 42.0, duration: "01:20:00", createdAt: "2026-02-28T08:00:00Z" } },
+    ],
   },
   {
     id: 3,
@@ -296,7 +311,9 @@ export const mockRegistrations: Registration[] = [
       shipmentStaff: [{ id: 1, shipmentId: 2, eventStaffId: 1, trackingNumber: "TH123456789", shippedAt: "2026-02-14T15:00:00Z" }],
     }],
     registrationItemVariants: [{ id: 3, registrationId: 3, itemId: 3, itemVariantId: 6, itemVariants: shirtVariants2[1], items: items[2] }],
-    runningResults: [],
+    runningResults: [
+      { id: 3, registrationId: 3, runningProofId: 3, status: "approved", createdAt: "2026-02-20T08:00:00Z", runningProofs: { id: 3, userId: 1, imageUrl: "", distance: 3.0, duration: "00:18:00", createdAt: "2026-02-20T06:00:00Z" } },
+    ],
   },
   {
     id: 4,
@@ -318,8 +335,8 @@ export const mockRegistrations: Registration[] = [
     }],
     registrationItemVariants: [],
     runningResults: [
-      { id: 1, registrationId: 4, runningProofId: 1, status: "approved", createdAt: "2026-01-10T08:00:00Z" },
-      { id: 2, registrationId: 4, runningProofId: 2, status: "approved", createdAt: "2026-01-15T08:00:00Z" },
+      { id: 1, registrationId: 4, runningProofId: 1, status: "approved", createdAt: "2026-01-10T08:00:00Z", runningProofs: { id: 1, userId: 1, imageUrl: "", distance: 5.2, duration: "00:35:00", createdAt: "2026-01-10T06:30:00Z" } },
+      { id: 2, registrationId: 4, runningProofId: 2, status: "approved", createdAt: "2026-01-15T08:00:00Z", runningProofs: { id: 2, userId: 1, imageUrl: "", distance: 10.1, duration: "01:05:00", createdAt: "2026-01-15T07:00:00Z" } },
     ],
   },
 ];
@@ -335,7 +352,7 @@ export const mockRunningProofs: RunningProof[] = [
     duration: "00:35:00",
     note: "วิ่งรอบสวนลุมพินี เช้า",
     createdAt: "2026-01-10T06:30:00Z",
-    runningResults: [{ id: 1, registrationId: 4, runningProofId: 1, status: "approved", createdAt: "2026-01-10T08:00:00Z" }],
+    runningResults: [{ id: 1, registrationId: 4, runningProofId: 1, status: "approved", createdAt: "2026-01-10T08:00:00Z", registrations: { id: 4, packages: { id: 10, name: "5K Beach", events: { id: 5, title: "วิ่งริมทะเล หัวหิน", status: "completed" } as Event } as Package } as Registration }],
   },
   {
     id: 2,
@@ -345,7 +362,7 @@ export const mockRunningProofs: RunningProof[] = [
     duration: "01:05:00",
     note: "วิ่งรอบสวนรถไฟ 2 รอบ",
     createdAt: "2026-01-15T07:00:00Z",
-    runningResults: [{ id: 2, registrationId: 4, runningProofId: 2, status: "approved", createdAt: "2026-01-15T09:00:00Z" }],
+    runningResults: [{ id: 2, registrationId: 4, runningProofId: 2, status: "approved", createdAt: "2026-01-15T09:00:00Z", registrations: { id: 4, packages: { id: 10, name: "5K Beach", events: { id: 5, title: "วิ่งริมทะเล หัวหิน", status: "completed" } as Event } as Package } as Registration }],
   },
   {
     id: 3,
@@ -355,7 +372,7 @@ export const mockRunningProofs: RunningProof[] = [
     duration: "00:18:00",
     note: "วิ่งเช้าแถวบ้าน",
     createdAt: "2026-02-20T06:00:00Z",
-    runningResults: [{ id: 3, registrationId: 3, runningProofId: 3, status: "pending", createdAt: "2026-02-20T08:00:00Z" }],
+    runningResults: [{ id: 3, registrationId: 3, runningProofId: 3, status: "pending", createdAt: "2026-02-20T08:00:00Z", registrations: { id: 3, packages: { id: 7, name: "Family Run 5K", events: { id: 3, title: "วิ่งการกุศล ช้างน้อย", status: "approved" } as Event } as Package } as Registration }],
   },
   {
     id: 4,
@@ -365,7 +382,7 @@ export const mockRunningProofs: RunningProof[] = [
     duration: "01:45:00",
     note: "Half Marathon ซ้อมก่อนงานจริง",
     createdAt: "2026-02-25T05:30:00Z",
-    runningResults: [{ id: 4, registrationId: 2, runningProofId: 4, status: "pending", createdAt: "2026-02-25T08:00:00Z" }],
+    runningResults: [{ id: 4, registrationId: 2, runningProofId: 4, status: "pending", createdAt: "2026-02-25T08:00:00Z", registrations: { id: 2, packages: { id: 4, name: "10K Challenge", events: { id: 2, title: "BKK Mini Marathon", status: "approved" } as Event } as Package } as Registration }],
   },
   {
     id: 5,
@@ -375,7 +392,7 @@ export const mockRunningProofs: RunningProof[] = [
     duration: "01:20:00",
     note: "ทดสอบระบบ",
     createdAt: "2026-02-28T08:00:00Z",
-    runningResults: [{ id: 5, registrationId: 2, runningProofId: 5, status: "rejected", reviewNote: "Pace เร็วเกินจริง (1:54 min/km) — เร็วกว่า world record", createdAt: "2026-02-28T10:00:00Z" }],
+    runningResults: [{ id: 5, registrationId: 2, runningProofId: 5, status: "rejected", reviewNote: "Pace เร็วเกินจริง (1:54 min/km) — เร็วกว่า world record", createdAt: "2026-02-28T10:00:00Z", registrations: { id: 2, packages: { id: 4, name: "10K Challenge", events: { id: 2, title: "BKK Mini Marathon", status: "approved" } as Event } as Package } as Registration }],
   },
 ];
 
@@ -442,4 +459,14 @@ export const mockSubDistricts: SubDistrict[] = [
   { id: 12, nameTh: "หัวหิน", nameEn: "Hua Hin", postalCode: "77110", districtId: 9 },
   // เมืองภูเก็ต
   { id: 13, nameTh: "ตลาดใหญ่", nameEn: "Talat Yai", postalCode: "83000", districtId: 10 },
+];
+
+// ─── Mock Notifications ───
+
+export const mockNotifications: Notification[] = [
+  { id: 1, message: "สมัครงานวิ่งสู้ฝุ่น 2026 สำเร็จ", time: "2 ชม.ที่แล้ว", read: false },
+  { id: 2, message: "ชำระเงินสำเร็จ — BKK Mini Marathon", time: "1 วันที่แล้ว", read: false },
+  { id: 3, message: "จัดส่งแล้ว — เลขพัสดุ TH123456789", time: "2 วันที่แล้ว", read: true },
+  { id: 4, message: "ผลวิ่งผ่านการตรวจสอบ 3.5 km", time: "3 วันที่แล้ว", read: true },
+  { id: 5, message: "งาน Chiang Mai Trail Run เปิดรับสมัครแล้ว!", time: "5 วันที่แล้ว", read: true },
 ];

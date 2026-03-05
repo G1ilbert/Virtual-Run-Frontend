@@ -9,6 +9,7 @@ import type {
   Payout,
   StockIn,
   StockSummary,
+  SenderInfo,
 } from "@/types/api";
 import { mockEvents } from "@/lib/mock-data";
 
@@ -1046,6 +1047,13 @@ export const mockEventStaff: EventStaff[] = [
     assignedAt: "2026-01-20T08:00:00Z",
     users: { id: 32, username: "staff_fah", email: "fah@virtualrun.com" },
   },
+  {
+    id: 4,
+    eventId: 2,
+    userId: 30,
+    assignedAt: "2026-01-22T08:00:00Z",
+    users: { id: 30, username: "staff_lek", email: "lek@virtualrun.com" },
+  },
 ];
 
 // ─── Mock Organizer Application ───
@@ -1089,3 +1097,22 @@ export const mockStockIns: StockIn[] = [
 // ─── Backward compat alias (plural) ───
 
 export const mockOrganizerApplications: OrganizerApplication[] = [mockOrganizerApplication];
+
+// ─── Mock Sender Info ───
+export const mockSenderInfo: SenderInfo = {
+  shopName: "เก่าต่อไป Running Club",
+  phone: "0891234567",
+  address: "99/9 ถ.รัชดาภิเษก",
+  district: "ห้วยขวาง",
+  province: "กรุงเทพฯ",
+  zipCode: "10310",
+};
+
+// ─── Mock Users for Staff Search ───
+export const mockSearchableUsers = [
+  { id: 30, username: "staff_lek", email: "lek@virtualrun.com" },
+  { id: 31, username: "staff_nong", email: "nong@virtualrun.com" },
+  { id: 32, username: "staff_fah", email: "fah@virtualrun.com" },
+  { id: 33, username: "staff_pop", email: "pop@virtualrun.com" },
+  { id: 34, username: "staff_nam", email: "nam@virtualrun.com" },
+];

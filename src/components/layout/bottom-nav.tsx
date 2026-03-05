@@ -3,7 +3,7 @@
 import { useState, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, ClipboardList, User, PersonStanding, Plus, Upload, X, Loader2, Crown, Shield } from "lucide-react";
+import { Home, ClipboardList, User, PersonStanding, Upload, X, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyRegistrations, useMyRunningProofs, submitRunningProof, submitRunningResult } from "@/hooks/useApi";
@@ -20,14 +20,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-
-const navItems = [
-  { href: "/", icon: Home, label: "หน้าแรก" },
-  { href: "/search", icon: Search, label: "ค้นหา" },
-  { href: "#submit", icon: null, label: "ส่งผลวิ่ง", special: true },
-  { href: "/my", icon: ClipboardList, label: "งานของฉัน" },
-  { href: "/profile", icon: User, label: "โปรไฟล์" },
-];
 
 export function BottomNav() {
   const pathname = usePathname();
@@ -88,40 +80,21 @@ export function BottomNav() {
       setSelectedRegistrations([]);
       await mutateProofs();
     } catch {
-      // handled
+      // handled by api-client
     } finally {
       setSubmitting(false);
     }
   };
 
+  const navItems = [
+    { href: "/", icon: Home, label: "หน้าแรก" },
+    { href: "#submit", icon: null, label: "ส่งผลวิ่ง", special: true },
+    { href: "/my", icon: ClipboardList, label: "งานของฉัน" },
+    { href: "/profile", icon: User, label: "โปรไฟล์" },
+  ];
+
   return (
     <>
-      {/* Role-based panel link (mobile) */}
-      {user && (user.role === "ORGANIZER" || user.role === "ADMIN") && (
-        <div className="fixed bottom-[calc(3.5rem+env(safe-area-inset-bottom))] left-0 right-0 z-50 md:hidden">
-          <div className="flex justify-center gap-2 px-4 pb-1">
-            {(user.role === "ORGANIZER" || user.role === "ADMIN") && (
-              <Link
-                href="/organizer"
-                className="flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-900/40 px-3 py-1.5 text-xs font-medium text-amber-700 dark:text-amber-300 shadow-sm"
-              >
-                <Crown className="h-3.5 w-3.5" />
-                จัดการงานวิ่ง
-              </Link>
-            )}
-            {user.role === "ADMIN" && (
-              <Link
-                href="/admin"
-                className="flex items-center gap-1.5 rounded-full bg-red-100 dark:bg-red-900/40 px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-300 shadow-sm"
-              >
-                <Shield className="h-3.5 w-3.5" />
-                Admin Panel
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
-
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 md:hidden">
         <div className="flex items-end justify-around px-2 pb-[env(safe-area-inset-bottom)]">
           {navItems.map((item) => {
@@ -156,7 +129,7 @@ export function BottomNav() {
                 className={cn(
                   "flex flex-col items-center gap-0.5 py-2 px-3 transition-colors",
                   isActive
-                    ? "text-brand-foreground dark:text-brand"
+                    ? "text-foreground"
                     : "text-muted-foreground",
                 )}
               >
@@ -221,9 +194,12 @@ export function BottomNav() {
                   {confirmedRegs.map((reg) => (
                     <div
                       key={reg.id}
-                      className={`cursor-pointer rounded-lg border p-2.5 text-sm transition-colors ${
-                        selectedRegistrations.includes(reg.id) ? "border-brand bg-brand/5" : "border-border hover:border-brand/30"
-                      }`}
+                      className={cn(
+                        "cursor-pointer rounded-lg border p-2.5 text-sm transition-colors",
+                        selectedRegistrations.includes(reg.id)
+                          ? "border-brand bg-brand/5"
+                          : "border-border hover:border-brand/30"
+                      )}
                       onClick={() => toggleReg(reg.id)}
                     >
                       {reg.packages?.events?.title ?? reg.packages?.name ?? `#${reg.id}`}

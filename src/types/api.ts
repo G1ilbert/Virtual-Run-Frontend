@@ -273,3 +273,21 @@ export interface ShipmentAdjustment {
   items?: Item;
   itemVariants?: ItemVariant;
 }
+
+// ─── Notification ───
+export interface Notification {
+  id: number;
+  message: string;
+  time: string;
+  read: boolean;
+}
+
+// ─── Sender Info (for shipping labels) ───
+export interface SenderInfo {
+  shopName: string;
+  phone: string;
+  address: string;
+  district: string;
+  province: string;
+  zipCode: string;
+}

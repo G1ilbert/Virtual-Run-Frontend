@@ -1,24 +1,20 @@
 "use client";
 
 import { use } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRunningProof } from "@/hooks/useApi";
 import { AuthGuard } from "@/components/auth-guard";
-import { DetailSkeleton } from "@/components/page-skeleton";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import {
-  Image,
+  ArrowLeft,
   MapPin,
   Clock,
   Gauge,
-  Trophy,
   FileText,
+  Image as ImageIcon,
+  ChevronRight,
 } from "lucide-react";
 
 function formatDate(dateStr?: string) {
@@ -34,7 +30,6 @@ function formatDate(dateStr?: string) {
 
 function calcPace(distance?: number, duration?: string) {
   if (!distance || !duration) return null;
-  // duration format: "HH:MM:SS" or similar
   const parts = duration.split(":").map(Number);
   let totalMinutes = 0;
   if (parts.length === 3) {
@@ -55,12 +50,23 @@ export default function RunningProofDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
+  const router = useRouter();
   const { data: proof, isLoading } = useRunningProof(id);
 
   if (isLoading) {
     return (
       <AuthGuard>
-        <DetailSkeleton />
+        <div className="px-4 md:px-6 py-6 max-w-2xl mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-8 w-48 bg-muted rounded" />
+            <div className="aspect-video bg-muted rounded-xl" />
+            <div className="grid grid-cols-3 gap-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-20 bg-muted rounded-xl" />
+              ))}
+            </div>
+          </div>
+        </div>
       </AuthGuard>
     );
   }
@@ -68,7 +74,7 @@ export default function RunningProofDetailPage({
   if (!proof) {
     return (
       <AuthGuard>
-        <div className="container mx-auto px-4 py-16 text-center">
+        <div className="px-4 md:px-6 py-16 text-center">
           <p className="text-muted-foreground">ไม่พบผลวิ่งนี้</p>
         </div>
       </AuthGuard>
@@ -79,66 +85,62 @@ export default function RunningProofDetailPage({
 
   return (
     <AuthGuard>
-      <div className="container mx-auto max-w-2xl px-4 py-6">
-        <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
-          <Trophy className="h-6 w-6" />
-          รายละเอียดผลวิ่ง
-        </h1>
+      <div className="px-4 md:px-6 py-6 max-w-2xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center gap-3 mb-6">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 shrink-0"
+            onClick={() => router.back()}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <h1 className="text-lg font-bold">รายละเอียดผลวิ่ง</h1>
+        </div>
 
         {/* Image */}
-        <Card className="mb-6 overflow-hidden">
-          <div className="relative aspect-video bg-muted flex items-center justify-center">
-            {proof.imageUrl ? (
-              <img
-                src={proof.imageUrl}
-                alt="Running proof"
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              <Image className="h-16 w-16 text-muted-foreground/30" />
-            )}
-          </div>
-        </Card>
+        <div className="rounded-xl overflow-hidden bg-muted mb-6">
+          {proof.imageUrl ? (
+            <img
+              src={proof.imageUrl}
+              alt="Running proof"
+              className="w-full aspect-video object-contain"
+            />
+          ) : (
+            <div className="aspect-video flex items-center justify-center">
+              <ImageIcon className="h-16 w-16 text-muted-foreground/30" />
+            </div>
+          )}
+        </div>
 
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <Card>
-            <CardContent className="flex flex-col items-center pt-6">
-              <MapPin className="h-5 w-5 text-brand-foreground dark:text-brand mb-1" />
-              <p className="text-xl font-bold">
-                {proof.distance ?? "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">กม.</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center pt-6">
-              <Clock className="h-5 w-5 text-brand-foreground dark:text-brand mb-1" />
-              <p className="text-xl font-bold">
-                {proof.duration ?? "—"}
-              </p>
-              <p className="text-xs text-muted-foreground">เวลา</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="flex flex-col items-center pt-6">
-              <Gauge className="h-5 w-5 text-brand-foreground dark:text-brand mb-1" />
-              <p className="text-xl font-bold">{pace ?? "—"}</p>
-              <p className="text-xs text-muted-foreground">pace</p>
-            </CardContent>
-          </Card>
+          <div className="rounded-xl bg-muted/50 p-3 text-center">
+            <MapPin className="h-5 w-5 text-brand-foreground dark:text-brand mx-auto mb-1" />
+            <p className="text-xl font-bold">{proof.distance ?? "—"}</p>
+            <p className="text-[10px] text-muted-foreground">กม.</p>
+          </div>
+          <div className="rounded-xl bg-muted/50 p-3 text-center">
+            <Clock className="h-5 w-5 text-brand-foreground dark:text-brand mx-auto mb-1" />
+            <p className="text-xl font-bold">{proof.duration ?? "—"}</p>
+            <p className="text-[10px] text-muted-foreground">เวลา</p>
+          </div>
+          <div className="rounded-xl bg-muted/50 p-3 text-center">
+            <Gauge className="h-5 w-5 text-brand-foreground dark:text-brand mx-auto mb-1" />
+            <p className="text-xl font-bold">{pace ?? "—"}</p>
+            <p className="text-[10px] text-muted-foreground">pace</p>
+          </div>
         </div>
 
         {/* Note */}
         {proof.note && (
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <p className="text-sm flex items-start gap-2">
-                <FileText className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
-                {proof.note}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="rounded-xl border p-3 mb-4">
+            <p className="text-sm flex items-start gap-2">
+              <FileText className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+              {proof.note}
+            </p>
+          </div>
         )}
 
         {/* Date */}
@@ -146,49 +148,54 @@ export default function RunningProofDetailPage({
           ส่งเมื่อ {formatDate(proof.createdAt)}
         </p>
 
-        {/* Linked results */}
+        {/* Linked events */}
         {proof.runningResults && proof.runningResults.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">งานที่ผูก</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {proof.runningResults.map((rr) => (
-                <div
-                  key={rr.id}
-                  className="flex items-center justify-between rounded-lg border p-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium">
-                      {rr.registrations?.packages?.events?.title ??
-                        rr.registrations?.packages?.name ??
-                        `Registration #${rr.registrationId}`}
-                    </p>
-                    {rr.reviewNote && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        {rr.reviewNote}
-                      </p>
-                    )}
-                  </div>
-                  <Badge
-                    variant={
-                      rr.status === "approved"
-                        ? "default"
-                        : rr.status === "rejected"
-                          ? "destructive"
-                          : "secondary"
-                    }
+          <div>
+            <h2 className="text-sm font-semibold mb-3">ผูกกับงาน</h2>
+            <div className="rounded-xl border divide-y">
+              {proof.runningResults.map((rr) => {
+                const eventTitle =
+                  rr.registrations?.packages?.events?.title ??
+                  rr.registrations?.packages?.name ??
+                  `Registration #${rr.registrationId}`;
+
+                return (
+                  <Link
+                    key={rr.id}
+                    href={`/my/registrations/${rr.registrationId}`}
+                    className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
                   >
-                    {rr.status === "approved"
-                      ? "อนุมัติ"
-                      : rr.status === "rejected"
-                        ? "ไม่ผ่าน"
-                        : "รอตรวจ"}
-                  </Badge>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{eventTitle}</p>
+                      {rr.reviewNote && (
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                          {rr.reviewNote}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-3">
+                      <Badge
+                        variant={
+                          rr.status === "approved"
+                            ? "default"
+                            : rr.status === "rejected"
+                              ? "destructive"
+                              : "secondary"
+                        }
+                      >
+                        {rr.status === "approved"
+                          ? "อนุมัติ"
+                          : rr.status === "rejected"
+                            ? "ไม่ผ่าน"
+                            : "รอตรวจ"}
+                      </Badge>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
         )}
       </div>
     </AuthGuard>

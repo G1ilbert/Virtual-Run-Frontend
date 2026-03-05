@@ -61,7 +61,13 @@ import {
   uploadEventDetails,
   uploadPackageImage,
   uploadItemImage,
+  addEventStaff,
+  removeEventStaff,
+  searchUsers,
 } from "@/hooks/useOrganizerApi";
+import { generateShippingLabelPDF, generateTrackingNumber } from "@/components/shipping-label-pdf";
+import type { SenderInfo } from "@/types/api";
+import { mockSenderInfo } from "@/lib/organizer-mock-data";
 import { ImageUpload } from "@/components/image-upload";
 import { toast } from "sonner";
 import type { Event, Package as PackageType, Item, Registration } from "@/types/api";
@@ -84,6 +90,11 @@ import {
   Box,
   Info,
   LinkIcon,
+  Printer,
+  Eye,
+  Settings,
+  UserPlus,
+  Search,
 } from "lucide-react";
 
 // ─── Helpers ───
@@ -874,11 +885,73 @@ function ItemsTab({ eventId }: { eventId: number }) {
 // ═══════════════════════════════════════════════════════════════════
 
 function StaffTab({ eventId }: { eventId: number }) {
-  const { data: staff } = useEventStaff(eventId);
+  const { data: staff, mutate } = useEventStaff(eventId);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<{ id: number; username: string; email?: string }[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleSearch() {
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    try {
+      const results = await searchUsers(searchQuery.trim());
+      setSearchResults(results);
+    } catch {
+      toast.error("ค้นหาไม่สำเร็จ");
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  async function handleAdd(userId: number) {
+    setAdding(true);
+    try {
+      await addEventStaff({ eventId, userId });
+      toast.success("เพิ่มสตาฟสำเร็จ");
+      setAddDialogOpen(false);
+      setSearchQuery("");
+      setSearchResults([]);
+      mutate();
+    } catch {
+      toast.error("เกิดข้อผิดพลาด");
+    } finally {
+      setAdding(false);
+    }
+  }
+
+  async function handleRemove() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await removeEventStaff(deleteTarget);
+      toast.success("ลบสตาฟแล้ว");
+      setDeleteTarget(null);
+      mutate();
+    } catch {
+      toast.error("เกิดข้อผิดพลาด");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold">สตาฟ</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold">สตาฟ</h3>
+        <Button
+          size="sm"
+          className="bg-brand text-brand-foreground hover:bg-brand/90"
+          onClick={() => setAddDialogOpen(true)}
+        >
+          <UserPlus className="mr-1 h-4 w-4" />
+          เพิ่ม Staff
+        </Button>
+      </div>
+
       {!staff || staff.length === 0 ? (
         <Card>
           <CardContent className="py-8 text-center text-muted-foreground">
@@ -895,6 +968,7 @@ function StaffTab({ eventId }: { eventId: number }) {
                     <th className="px-4 py-3 text-left font-medium">Username</th>
                     <th className="px-4 py-3 text-left font-medium">Email</th>
                     <th className="px-4 py-3 text-left font-medium">วันที่เพิ่ม</th>
+                    <th className="px-4 py-3 text-left font-medium">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -907,6 +981,17 @@ function StaffTab({ eventId }: { eventId: number }) {
                       <td className="px-4 py-3 text-muted-foreground">
                         {formatDate(s.assignedAt)}
                       </td>
+                      <td className="px-4 py-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs text-destructive"
+                          onClick={() => setDeleteTarget(s.id)}
+                        >
+                          <Trash2 className="mr-1 h-3 w-3" />
+                          ลบ
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -915,6 +1000,75 @@ function StaffTab({ eventId }: { eventId: number }) {
           </CardContent>
         </Card>
       )}
+
+      {/* Add Staff Dialog */}
+      <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>เพิ่ม Staff</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="flex gap-2">
+              <Input
+                placeholder="ค้นหาชื่อหรือ email..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleSearch(); }}
+              />
+              <Button variant="outline" onClick={handleSearch} disabled={searching}>
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+            {searching ? (
+              <p className="text-sm text-muted-foreground text-center py-4">กำลังค้นหา...</p>
+            ) : searchResults.length > 0 ? (
+              <div className="space-y-1 max-h-[200px] overflow-y-auto">
+                {searchResults.map((user) => {
+                  const alreadyAdded = staff?.some((s) => s.userId === user.id);
+                  return (
+                    <div key={user.id} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                      <div>
+                        <p className="text-sm font-medium">{user.username}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
+                      </div>
+                      {alreadyAdded ? (
+                        <Badge variant="secondary" className="text-xs">เพิ่มแล้ว</Badge>
+                      ) : (
+                        <Button
+                          size="sm"
+                          className="h-7 text-xs bg-brand text-brand-foreground hover:bg-brand/90"
+                          onClick={() => handleAdd(user.id)}
+                          disabled={adding}
+                        >
+                          เพิ่ม
+                        </Button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : searchQuery && !searching ? (
+              <p className="text-sm text-muted-foreground text-center py-4">ไม่พบผลลัพธ์</p>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Staff Confirmation */}
+      <Dialog open={deleteTarget !== null} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>ยืนยันการลบ Staff</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">ต้องการลบสตาฟคนนี้จากงานใช่ไหม?</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>ยกเลิก</Button>
+            <Button variant="destructive" onClick={handleRemove} disabled={deleting}>
+              {deleting ? "กำลังลบ..." : "ลบ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -932,6 +1086,7 @@ function RegistrationsTab({ eventId }: { eventId: number }) {
     limit: 10,
     paymentStatus: paymentFilter !== "all" ? paymentFilter : undefined,
   });
+  const [detailReg, setDetailReg] = useState<Registration | null>(null);
 
   return (
     <div className="space-y-4">
@@ -972,7 +1127,11 @@ function RegistrationsTab({ eventId }: { eventId: number }) {
                 </thead>
                 <tbody>
                   {data.data.map((reg) => (
-                    <tr key={reg.id} className="border-b last:border-0">
+                    <tr
+                      key={reg.id}
+                      className="border-b last:border-0 cursor-pointer hover:bg-muted/50"
+                      onClick={() => setDetailReg(reg)}
+                    >
                       <td className="px-4 py-3 font-medium">
                         {reg.users?.username ?? "-"}
                       </td>
@@ -993,12 +1152,59 @@ function RegistrationsTab({ eventId }: { eventId: number }) {
       )}
 
       {data && (
-        <Pagination
-          page={data.meta.page}
-          totalPages={data.meta.totalPages}
-          onPageChange={setPage}
-        />
+        <Pagination page={data.meta.page} totalPages={data.meta.totalPages} onPageChange={setPage} />
       )}
+
+      {/* Registration Detail Dialog */}
+      <Dialog open={detailReg !== null} onOpenChange={(open) => { if (!open) setDetailReg(null); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>รายละเอียดผู้สมัคร</DialogTitle>
+          </DialogHeader>
+          {detailReg && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">ชื่อ</p>
+                  <p className="font-medium">{detailReg.users?.username ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">แพ็กเกจ</p>
+                  <p className="font-medium">{detailReg.packages?.name ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">ราคา</p>
+                  <p className="font-medium">฿{detailReg.priceSnapshot?.toLocaleString() ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">ระยะทาง</p>
+                  <p className="font-medium">{detailReg.targetDistanceSnapshot ? `${detailReg.targetDistanceSnapshot} กม.` : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">สถานะชำระเงิน</p>
+                  {paymentBadge(detailReg.paymentStatus)}
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">วันที่สมัคร</p>
+                  <p className="font-medium">{formatDate(detailReg.createdAt)}</p>
+                </div>
+              </div>
+              {detailReg.addressDetail && (
+                <div>
+                  <p className="text-xs text-muted-foreground">ที่อยู่จัดส่ง</p>
+                  <p className="font-medium">{detailReg.addressDetail}</p>
+                </div>
+              )}
+              {detailReg.slipUrl && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">สลิปการชำระเงิน</p>
+                  <img src={detailReg.slipUrl} alt="Payment slip" className="w-full max-h-[200px] object-contain rounded-lg border" />
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1017,12 +1223,36 @@ function RunningResultsTab({ eventId }: { eventId: number }) {
     status: statusFilter !== "all" ? statusFilter : undefined,
   });
   const [reviewingId, setReviewingId] = useState<number | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [editStatusId, setEditStatusId] = useState<number | null>(null);
+  const [editStatusCurrent, setEditStatusCurrent] = useState("");
+  const [editStatusNew, setEditStatusNew] = useState("");
+  const [editNote, setEditNote] = useState("");
 
-  async function handleReview(id: number, status: "approved" | "rejected") {
+  async function handleReview(id: number, status: "approved" | "rejected", note?: string) {
     setReviewingId(id);
     try {
-      await reviewRunningResult(id, 0, { status });
+      await reviewRunningResult(id, 0, { status, reviewNote: note });
       toast.success(status === "approved" ? "อนุมัติแล้ว" : "ปฏิเสธแล้ว");
+      mutate();
+    } catch {
+      toast.error("เกิดข้อผิดพลาด");
+    } finally {
+      setReviewingId(null);
+    }
+  }
+
+  async function handleEditStatus() {
+    if (!editStatusId || !editStatusNew) return;
+    setReviewingId(editStatusId);
+    try {
+      await reviewRunningResult(editStatusId, 0, {
+        status: editStatusNew as "approved" | "rejected",
+        reviewNote: editNote || undefined,
+      });
+      toast.success("เปลี่ยนสถานะสำเร็จ");
+      setEditStatusId(null);
+      setEditNote("");
       mutate();
     } catch {
       toast.error("เกิดข้อผิดพลาด");
@@ -1055,88 +1285,158 @@ function RunningResultsTab({ eventId }: { eventId: number }) {
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium">นักวิ่ง</th>
-                    <th className="px-4 py-3 text-left font-medium">ระยะทาง</th>
-                    <th className="px-4 py-3 text-left font-medium">เวลา</th>
-                    <th className="px-4 py-3 text-left font-medium">Pace</th>
-                    <th className="px-4 py-3 text-left font-medium">สถานะ</th>
-                    <th className="px-4 py-3 text-left font-medium">จัดการ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.data.map((result) => {
-                    const proof = result.runningProofs;
-                    const pace = calcPace(proof?.distance, proof?.duration);
-                    const isSuspicious = pace && pace.raw < 3;
+        <div className="space-y-3">
+          {data.data.map((result) => {
+            const proof = result.runningProofs;
+            const pace = calcPace(proof?.distance, proof?.duration);
+            const isSuspicious = pace && pace.raw < 3;
+            const reg = result.registrations;
 
-                    return (
-                      <tr
-                        key={result.id}
-                        className={`border-b last:border-0 ${isSuspicious ? "bg-red-50 dark:bg-red-950/20" : ""}`}
+            return (
+              <Card key={result.id} className={isSuspicious ? "border-red-300 dark:border-red-800" : ""}>
+                <CardContent className="p-4">
+                  <div className="flex gap-3">
+                    {/* Proof Thumbnail */}
+                    {proof?.imageUrl && (
+                      <div
+                        className="w-20 h-20 rounded-lg overflow-hidden bg-muted shrink-0 cursor-pointer"
+                        onClick={() => setPreviewImage(proof.imageUrl)}
                       >
-                        <td className="px-4 py-3 font-medium">
-                          {result.registrations?.users?.username ?? "-"}
-                        </td>
-                        <td className="px-4 py-3">
-                          {proof?.distance ? `${proof.distance} กม.` : "-"}
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground">
-                          {proof?.duration ?? "-"}
-                        </td>
-                        <td className={`px-4 py-3 ${isSuspicious ? "text-red-600 font-bold" : "text-muted-foreground"}`}>
-                          {pace ? `${pace.formatted} min/km` : "-"}
-                          {isSuspicious && " (!)"}
-                        </td>
-                        <td className="px-4 py-3">{statusBadge(result.status)}</td>
-                        <td className="px-4 py-3">
-                          {result.status === "pending" && (
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs"
-                                disabled={reviewingId === result.id}
-                                onClick={() => handleReview(result.id, "approved")}
-                              >
-                                <Check className="mr-1 h-3 w-3" />
-                                อนุมัติ
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 text-xs text-destructive"
-                                disabled={reviewingId === result.id}
-                                onClick={() => handleReview(result.id, "rejected")}
-                              >
-                                <Ban className="mr-1 h-3 w-3" />
-                                ปฏิเสธ
-                              </Button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
+                        <img src={proof.imageUrl} alt="proof" className="h-full w-full object-cover hover:scale-105 transition-transform" />
+                      </div>
+                    )}
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="text-sm font-medium">{reg?.users?.username ?? "-"}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {reg?.packages?.name} &middot; {formatDate(result.createdAt)}
+                          </p>
+                        </div>
+                        {statusBadge(result.status)}
+                      </div>
+
+                      <div className="flex gap-3 mt-1.5 text-xs text-muted-foreground">
+                        {proof?.distance && <span>{proof.distance} กม.</span>}
+                        {proof?.duration && <span>{proof.duration}</span>}
+                        {pace && (
+                          <span className={isSuspicious ? "text-red-600 font-bold" : ""}>
+                            {pace.formatted} min/km {isSuspicious && "(!)"}
+                          </span>
+                        )}
+                      </div>
+
+                      {result.reviewNote && (
+                        <p className="text-xs mt-1.5 bg-muted rounded px-2 py-1">
+                          <span className="font-medium">หมายเหตุ:</span> {result.reviewNote}
+                        </p>
+                      )}
+
+                      {/* Actions */}
+                      <div className="flex gap-1.5 mt-2 flex-wrap">
+                        {proof?.imageUrl && (
+                          <Button size="sm" variant="ghost" className="h-7 text-xs gap-1" onClick={() => setPreviewImage(proof.imageUrl)}>
+                            <Eye className="h-3.5 w-3.5" />
+                            ดูภาพ
+                          </Button>
+                        )}
+                        {result.status === "pending" && (
+                          <>
+                            <Button
+                              size="sm" variant="outline"
+                              className="h-7 text-xs gap-1 text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/20"
+                              disabled={reviewingId === result.id}
+                              onClick={() => handleReview(result.id, "approved")}
+                            >
+                              <Check className="h-3 w-3" />
+                              อนุมัติ
+                            </Button>
+                            <Button
+                              size="sm" variant="outline"
+                              className="h-7 text-xs gap-1 text-red-600 border-red-200 hover:bg-red-50 dark:hover:bg-red-900/20"
+                              disabled={reviewingId === result.id}
+                              onClick={() => handleReview(result.id, "rejected")}
+                            >
+                              <Ban className="h-3 w-3" />
+                              ปฏิเสธ
+                            </Button>
+                          </>
+                        )}
+                        {result.status !== "pending" && (
+                          <Button
+                            size="sm" variant="outline"
+                            className="h-7 text-xs gap-1"
+                            onClick={() => {
+                              setEditStatusId(result.id);
+                              setEditStatusCurrent(result.status);
+                              setEditStatusNew("");
+                              setEditNote("");
+                            }}
+                          >
+                            <Pencil className="h-3 w-3" />
+                            แก้ไข
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
 
       {data && (
-        <Pagination
-          page={data.meta.page}
-          totalPages={data.meta.totalPages}
-          onPageChange={setPage}
-        />
+        <Pagination page={data.meta.page} totalPages={data.meta.totalPages} onPageChange={setPage} />
       )}
+
+      {/* Image Preview Dialog */}
+      <Dialog open={previewImage !== null} onOpenChange={(open) => { if (!open) setPreviewImage(null); }}>
+        <DialogContent className="max-w-lg p-2">
+          <DialogHeader>
+            <DialogTitle className="sr-only">ภาพหลักฐาน</DialogTitle>
+          </DialogHeader>
+          {previewImage && (
+            <img src={previewImage} alt="Running proof" className="w-full max-h-[70vh] object-contain rounded-lg" />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Status Dialog */}
+      <Dialog open={editStatusId !== null} onOpenChange={(open) => { if (!open) setEditStatusId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>แก้ไขสถานะผลวิ่ง</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <p className="text-sm text-muted-foreground">
+              สถานะปัจจุบัน: {editStatusCurrent === "approved" ? "อนุมัติ" : editStatusCurrent === "rejected" ? "ไม่ผ่าน" : "รอตรวจ"}
+            </p>
+            <div className="space-y-2">
+              <Label>เปลี่ยนเป็น</Label>
+              <Select value={editStatusNew} onValueChange={setEditStatusNew}>
+                <SelectTrigger><SelectValue placeholder="เลือกสถานะ..." /></SelectTrigger>
+                <SelectContent>
+                  {editStatusCurrent !== "approved" && <SelectItem value="approved">อนุมัติ</SelectItem>}
+                  {editStatusCurrent !== "rejected" && <SelectItem value="rejected">ไม่ผ่าน</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>หมายเหตุ</Label>
+              <Textarea value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="เหตุผลที่เปลี่ยนสถานะ..." rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditStatusId(null)}>ยกเลิก</Button>
+            <Button className="bg-brand text-brand-foreground hover:bg-brand/90" onClick={handleEditStatus} disabled={!editStatusNew || reviewingId !== null}>
+              ยืนยัน
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -1145,7 +1445,7 @@ function RunningResultsTab({ eventId }: { eventId: number }) {
 // Tab 7: Shipments
 // ═══════════════════════════════════════════════════════════════════
 
-function ShipmentsTab({ eventId }: { eventId: number }) {
+function ShipmentsTab({ eventId, eventTitle }: { eventId: number; eventTitle: string }) {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
   const { data, mutate } = useOrgShipments({
@@ -1167,10 +1467,95 @@ function ShipmentsTab({ eventId }: { eventId: number }) {
   const [selectedStaffId, setSelectedStaffId] = useState("");
   const [trackingNumber, setTrackingNumber] = useState("");
 
+  // Sender setup
+  const [senderDialogOpen, setSenderDialogOpen] = useState(false);
+  const [senderInfo, setSenderInfo] = useState<SenderInfo>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`sender_info_${eventId}`);
+      if (saved) return JSON.parse(saved) as SenderInfo;
+    }
+    return mockSenderInfo;
+  });
+  const [editSender, setEditSender] = useState<SenderInfo>(senderInfo);
+
+  // Batch select for print
+  const [selectedShipmentIds, setSelectedShipmentIds] = useState<Set<number>>(new Set());
+
   // Get confirmed registrations that don't have a shipment yet
   const confirmedRegs = (registrations?.data ?? []).filter(
     (r) => r.paymentStatus === "confirmed"
   );
+
+  function handleSaveSender() {
+    setSenderInfo(editSender);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(`sender_info_${eventId}`, JSON.stringify(editSender));
+    }
+    setSenderDialogOpen(false);
+    toast.success("บันทึกที่อยู่ผู้ส่งสำเร็จ");
+  }
+
+  function toggleSelectShipment(shipmentId: number) {
+    setSelectedShipmentIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(shipmentId)) next.delete(shipmentId);
+      else next.add(shipmentId);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (!data) return;
+    const allIds = data.data.map((s) => s.id);
+    const allSelected = allIds.every((id) => selectedShipmentIds.has(id));
+    if (allSelected) {
+      setSelectedShipmentIds(new Set());
+    } else {
+      setSelectedShipmentIds(new Set(allIds));
+    }
+  }
+
+  function buildLabelData(shipment: any) {
+    const reg = shipment.registrations;
+    const staffAssignment = shipment.shipmentStaff?.[0];
+    const tracking = staffAssignment?.trackingNumber || generateTrackingNumber(shipment.id);
+    return {
+      trackingNumber: tracking,
+      sender: senderInfo,
+      recipient: {
+        name: reg?.users?.username ?? `ผู้รับ #${shipment.registrationId}`,
+        address: reg?.addressDetail ?? "123 ถ.สุขุมวิท",
+        district: "วัฒนา",
+        province: "กรุงเทพฯ",
+        zipCode: "10110",
+        phone: "08x-xxx-xxxx",
+      },
+      eventTitle,
+      packageName: reg?.packages?.name ?? "-",
+      items: (shipment.shipmentItems ?? []).map((si: any) => {
+        const name = si.items?.name ?? `Item #${si.itemId}`;
+        const variant = si.itemVariants ? ` (${si.itemVariants.variantValue})` : "";
+        return `${name}${variant}`;
+      }),
+      createdDate: formatDate(shipment.createdAt) || "-",
+    };
+  }
+
+  async function handlePrintLabel(shipment: any) {
+    const labelData = buildLabelData(shipment);
+    await generateShippingLabelPDF([labelData]);
+  }
+
+  async function handleBatchPrint() {
+    if (!data || selectedShipmentIds.size === 0) {
+      toast.error("กรุณาเลือกรายการจัดส่ง");
+      return;
+    }
+    const labels = data.data
+      .filter((s) => selectedShipmentIds.has(s.id))
+      .map((s) => buildLabelData(s));
+    await generateShippingLabelPDF(labels);
+  }
 
   async function handleCreateShipment() {
     if (!selectedRegId) return;
@@ -1222,7 +1607,7 @@ function ShipmentsTab({ eventId }: { eventId: number }) {
       await assignShipmentStaff({
         shipmentId: assignDialogShipmentId,
         eventStaffId: Number(selectedStaffId),
-        trackingNumber: trackingNumber || undefined,
+        trackingNumber: trackingNumber || generateTrackingNumber(assignDialogShipmentId),
       });
       toast.success("มอบหมายสตาฟสำเร็จ");
       setAssignDialogShipmentId(null);
@@ -1236,6 +1621,34 @@ function ShipmentsTab({ eventId }: { eventId: number }) {
 
   return (
     <div className="space-y-4">
+      {/* Sender Info Card */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">ที่อยู่ผู้ส่ง</CardTitle>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => {
+                setEditSender(senderInfo);
+                setSenderDialogOpen(true);
+              }}
+            >
+              <Settings className="mr-1 h-3.5 w-3.5" />
+              ตั้งค่า
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-sm space-y-0.5">
+            <p className="font-medium">{senderInfo.shopName}</p>
+            <p className="text-muted-foreground">{senderInfo.address}</p>
+            <p className="text-muted-foreground">{senderInfo.district} {senderInfo.province} {senderInfo.zipCode}</p>
+            <p className="text-muted-foreground">โทร: {senderInfo.phone}</p>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <h3 className="text-lg font-semibold">การจัดส่ง</h3>
         <div className="flex flex-wrap gap-2">
@@ -1268,6 +1681,16 @@ function ShipmentsTab({ eventId }: { eventId: number }) {
             <Truck className="mr-1 h-4 w-4" />
             {batchCreating ? "กำลังสร้าง..." : "Batch สร้าง"}
           </Button>
+          {selectedShipmentIds.size > 0 && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleBatchPrint}
+            >
+              <Printer className="mr-1 h-4 w-4" />
+              พิมพ์ {selectedShipmentIds.size} ใบ
+            </Button>
+          )}
         </div>
       </div>
 
@@ -1284,28 +1707,69 @@ function ShipmentsTab({ eventId }: { eventId: number }) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/50">
-                    <th className="px-4 py-3 text-left font-medium">#</th>
-                    <th className="px-4 py-3 text-left font-medium">สถานะ</th>
-                    <th className="px-4 py-3 text-left font-medium">Tracking</th>
-                    <th className="px-4 py-3 text-left font-medium">วันที่สร้าง</th>
-                    <th className="px-4 py-3 text-left font-medium">จัดการ</th>
+                    <th className="px-3 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        checked={data.data.length > 0 && data.data.every((s) => selectedShipmentIds.has(s.id))}
+                        onChange={toggleSelectAll}
+                        className="rounded border-gray-300"
+                      />
+                    </th>
+                    <th className="px-3 py-3 text-left font-medium">#</th>
+                    <th className="px-3 py-3 text-left font-medium">ผู้รับ</th>
+                    <th className="px-3 py-3 text-left font-medium">สถานะ</th>
+                    <th className="px-3 py-3 text-left font-medium">Tracking</th>
+                    <th className="px-3 py-3 text-left font-medium">ของ</th>
+                    <th className="px-3 py-3 text-left font-medium">วันที่สร้าง</th>
+                    <th className="px-3 py-3 text-left font-medium">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.data.map((shipment) => {
+                  {data.data.map((shipment: any) => {
                     const staffAssignment = shipment.shipmentStaff?.[0];
+                    const reg = shipment.registrations;
                     return (
                       <tr key={shipment.id} className="border-b last:border-0">
-                        <td className="px-4 py-3 font-medium">#{shipment.id}</td>
-                        <td className="px-4 py-3">{statusBadge(shipment.status)}</td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        <td className="px-3 py-3">
+                          <input
+                            type="checkbox"
+                            checked={selectedShipmentIds.has(shipment.id)}
+                            onChange={() => toggleSelectShipment(shipment.id)}
+                            className="rounded border-gray-300"
+                          />
+                        </td>
+                        <td className="px-3 py-3 font-medium">#{shipment.id}</td>
+                        <td className="px-3 py-3">
+                          <div>
+                            <p className="font-medium">{reg?.users?.username ?? "-"}</p>
+                            <p className="text-xs text-muted-foreground">{reg?.packages?.name ?? ""}</p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3">{statusBadge(shipment.status)}</td>
+                        <td className="px-3 py-3 font-mono text-xs text-muted-foreground">
                           {staffAssignment?.trackingNumber ?? "-"}
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">
+                        <td className="px-3 py-3 text-xs text-muted-foreground">
+                          {(shipment.shipmentItems ?? []).map((si: any) => (
+                            <div key={si.id}>
+                              {si.items?.name}{si.itemVariants ? ` (${si.itemVariants.variantValue})` : ""}
+                            </div>
+                          ))}
+                        </td>
+                        <td className="px-3 py-3 text-muted-foreground">
                           {formatDate(shipment.createdAt)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-3">
                           <div className="flex flex-wrap gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              onClick={() => handlePrintLabel(shipment)}
+                            >
+                              <Printer className="mr-1 h-3 w-3" />
+                              พิมพ์
+                            </Button>
                             {shipment.status === "pending" && (
                               <Button
                                 size="sm"
@@ -1335,7 +1799,7 @@ function ShipmentsTab({ eventId }: { eventId: number }) {
                                 onClick={() => {
                                   setAssignDialogShipmentId(shipment.id);
                                   setSelectedStaffId("");
-                                  setTrackingNumber(staffAssignment?.trackingNumber ?? "");
+                                  setTrackingNumber(staffAssignment?.trackingNumber ?? generateTrackingNumber(shipment.id));
                                 }}
                               >
                                 <LinkIcon className="mr-1 h-3 w-3" />
@@ -1432,8 +1896,9 @@ function ShipmentsTab({ eventId }: { eventId: number }) {
               <Input
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
-                placeholder="TH20260300XX"
+                placeholder="VR-XXXXXXXX-XXXX"
               />
+              <p className="text-xs text-muted-foreground">จะถูกสร้างอัตโนมัติหากปล่อยว่าง</p>
             </div>
           </div>
           <DialogFooter>
@@ -1444,6 +1909,72 @@ function ShipmentsTab({ eventId }: { eventId: number }) {
               className="bg-brand text-brand-foreground hover:bg-brand/90"
               onClick={handleAssignStaff}
               disabled={!selectedStaffId}
+            >
+              บันทึก
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Sender Setup Dialog */}
+      <Dialog open={senderDialogOpen} onOpenChange={setSenderDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>ตั้งค่าที่อยู่ผู้ส่ง</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label>ชื่อร้าน / ชื่อผู้ส่ง</Label>
+              <Input
+                value={editSender.shopName}
+                onChange={(e) => setEditSender({ ...editSender, shopName: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>เบอร์โทร</Label>
+              <Input
+                value={editSender.phone}
+                onChange={(e) => setEditSender({ ...editSender, phone: e.target.value })}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label>ที่อยู่</Label>
+              <Input
+                value={editSender.address}
+                onChange={(e) => setEditSender({ ...editSender, address: e.target.value })}
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1.5">
+                <Label>เขต/อำเภอ</Label>
+                <Input
+                  value={editSender.district}
+                  onChange={(e) => setEditSender({ ...editSender, district: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>จังหวัด</Label>
+                <Input
+                  value={editSender.province}
+                  onChange={(e) => setEditSender({ ...editSender, province: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>รหัสไปรษณีย์</Label>
+                <Input
+                  value={editSender.zipCode}
+                  onChange={(e) => setEditSender({ ...editSender, zipCode: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSenderDialogOpen(false)}>
+              ยกเลิก
+            </Button>
+            <Button
+              className="bg-brand text-brand-foreground hover:bg-brand/90"
+              onClick={handleSaveSender}
             >
               บันทึก
             </Button>
@@ -1563,7 +2094,7 @@ export default function OrganizerEventDetailPage({
             </TabsContent>
 
             <TabsContent value="shipments">
-              <ShipmentsTab eventId={eventId} />
+              <ShipmentsTab eventId={eventId} eventTitle={event.title} />
             </TabsContent>
           </div>
         </Tabs>

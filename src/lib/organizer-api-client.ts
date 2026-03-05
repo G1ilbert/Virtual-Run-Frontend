@@ -26,6 +26,7 @@ import {
   mockPayouts,
   mockStockSummaries,
   mockStockIns,
+  mockSearchableUsers,
 } from "@/lib/organizer-mock-data";
 
 const USE_MOCK = process.env.NEXT_PUBLIC_USE_MOCK === "true";
@@ -889,4 +890,51 @@ export async function fetchMyPayouts(): Promise<Payout[]> {
   }
   await delay();
   return _payouts;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// Staff Management & User Search
+// ═══════════════════════════════════════════════════════════════════
+
+export async function addEventStaff(data: {
+  eventId: number;
+  userId: number;
+}): Promise<EventStaff> {
+  if (!USE_MOCK) {
+    const { default: api } = await import("@/lib/api");
+    return (await api.post("/event-staff", data)).data;
+  }
+  await delay(600);
+  const user = mockSearchableUsers.find((u) => u.id === data.userId);
+  const newStaff: EventStaff = {
+    id: Date.now(),
+    eventId: data.eventId,
+    userId: data.userId,
+    assignedAt: new Date().toISOString(),
+    users: user ? { id: user.id, username: user.username, email: user.email } : { id: data.userId, username: `User #${data.userId}` },
+  };
+  _eventStaff = [..._eventStaff, newStaff];
+  return newStaff;
+}
+
+export async function removeEventStaff(staffId: number): Promise<void> {
+  if (!USE_MOCK) {
+    const { default: api } = await import("@/lib/api");
+    await api.delete(`/event-staff/${staffId}`);
+    return;
+  }
+  await delay(600);
+  _eventStaff = _eventStaff.filter((s) => s.id !== staffId);
+}
+
+export async function searchUsers(query: string): Promise<{ id: number; username: string; email?: string }[]> {
+  if (!USE_MOCK) {
+    const { default: api } = await import("@/lib/api");
+    return (await api.get(`/users?search=${encodeURIComponent(query)}&limit=10`)).data?.data ?? [];
+  }
+  await delay(300);
+  const q = query.toLowerCase();
+  return mockSearchableUsers.filter(
+    (u) => u.username.toLowerCase().includes(q) || u.email.toLowerCase().includes(q),
+  );
 }
